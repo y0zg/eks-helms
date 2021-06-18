@@ -1,0 +1,2 @@
+**Usage**:\
+```helm install notifications . --namespace argocd --debug --dry-run --set slack.token=ksmcl --set slack.appUserName=argocd-staging --set slack.channelName=public-channel --set slack.messageBody.appEnv=staging --set slack.messageBody.argocdUrl=https://argocd.k.com --namespace argocd```

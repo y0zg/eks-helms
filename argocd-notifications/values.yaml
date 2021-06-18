@@ -1,0 +1,22 @@
+# Default values for alpha.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# Lib chart ::
+nameSpace: kube-system
+
+extraLabels: {}
+  # app.kubernetes.io/env: staging
+  # app.kubernetes.io/owner: devops
+
+deployment:
+  image: "argoprojlabs/argocd-notifications"
+  tag: "v1.0.2"
+
+slack:
+  token:
+  appUserName:
+  channelName:
+  appIconUrl: "https://cncf-branding.netlify.app/img/projects/argo/icon/color/argo-icon-color.png"
+  messageBody:
+    appEnv:
+    argocdUrl:
