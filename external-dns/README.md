@@ -1,14 +1,19 @@
+# External-Dns Installation Chart <img src="https://cncf-branding.netlify.app/img/projects/helm/icon/color/helm-icon-color.svg" width="30px">
+![](https://miro.medium.com/max/2560/1*RtYcmqA45r2ZEPUmcx_oTQ.png)
 
 
-**External-dns helm chart**
+* This chart will external DNS on EKS cluster. [ Currently hardedcoded the image tag to v0.7.6]
 
-Usage:
 
-helm install external-dns . --set externDns.domainName=scoring.com --set serviceAccount=external-dns-k8s
+Required Items|
+------------- |
+IAM Service Account|
+public hosted zone  | 
 
-**IAM Service Account** 
 
-external-dns-k8s policies reqired.
+**IAM Service Account required policies** 
+
+
 
 ```
 {
@@ -41,3 +46,26 @@ external-dns-k8s policies reqired.
     ]
 }
 ```
+
+**Usage:**
+* Clone the repo
+```
+git clone -b main https://github.com/suyog1pathak/eks-helms.git
+OR
+git clone -b main git@github.com:suyog1pathak/eks-helms.git
+```
+
+* Change Directory
+```
+cd external-dns
+```
+
+* Install helm chart with vars
+```
+helm install external-dns . --set externDns.domainName=scoring.com --set serviceAccount=external-dns-k8s
+```
+var          | type |details
+------------- |---- |-------------
+extraLabels|{}| dict of labels  ```app.kubernetes.io/env: staging```
+externDns.domainName|""|Domain name e.g scoring.com
+serviceAccount|""| IAM service Account name.

@@ -1,0 +1,55 @@
+{{- if .Values.service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.nameSpace }}
+  name: {{ include "helm.chartName" . }}-stable
+  labels:
+    {{- with .Values.extraLabels }}
+      {{ toYaml . | nindent 4}}
+    {{- end }}
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+   {{- if eq .Values.service.type "ClusterIP" }}
+    - protocol: {{ .Values.service.protocol | default "TCP"}}
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetport | default .Values.container.portExposed }}
+   {{- end }}   
+   {{- if eq .Values.service.type "NodePort" }}
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetport | default .Values.container.portExposed }}
+      nodePort: {{ .Values.service.nodePort }}
+   {{- end }}   
+  selector:
+    {{- include "helm.labels" . | nindent 4 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Values.nameSpace }}
+  name: {{ include "helm.chartName" . }}-canary
+  labels:
+    {{- with .Values.extraLabels }}
+      {{ toYaml . | nindent 4}}
+    {{- end }}
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+   {{- if eq .Values.service.type "ClusterIP" }}
+    - protocol: {{ .Values.service.protocol | default "TCP"}}
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetport | default .Values.container.portExposed }}
+   {{- end }}   
+   {{- if eq .Values.service.type "NodePort" }}
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetport | default .Values.container.portExposed }}
+      nodePort: {{ .Values.service.nodePort }}
+   {{- end }}   
+  selector:
+    {{- include "helm.labels" . | nindent 4 }}
+{{- end }}     

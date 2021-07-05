@@ -16,12 +16,13 @@ data:
       send: [slack-template-bad]
 
   trigger.on-sync-status-bad: |
-    - when: app.status.operationState.phase in ['Error', 'Failed', 'OutOfSync']
+    - when: app.status.sync.status in ['Error', 'Failed', 'OutOfSync']
       send: [slack-template-bad]
   # Optional 'oncePer' property ensure that notification is sent only once per specified field value
   # E.g. following is triggered once per sync revision
   trigger.on-deployed: |
     - when: app.status.operationState.phase in ['Succeeded']
+      oncePer: app.status.sync.revision
       send: [slack-template-good]
   # Templates are used to generate the notification template message
 
@@ -31,27 +32,47 @@ data:
   # Templates might have notification service specific fields. E.g. slack message might include annotations
   template.slack-template-good: |
     message: |
-      State of Application {{"{{"}}.app.metadata.name{{"}}"}} on {{"{{"}}.context.appenv{{"}}"}} is = {{"{{"}}.app.status.sync.status{{"}}"}}.
     slack:
       attachments: |
         [{
           "color": "#36a64f",
-          "title": "{{"{{"}}app.metadata.name{{"}}"}}",
-          "title_link": "{{"{{"}}context.argocdUrl{{"}}"}}/applications/{{"{{"}}app.metadata.name{{"}}"}}",
-          "text": "State - {{"{{"}}app.status.sync.status{{"}}"}}   Revision - {{"{{"}}app.status.sync.revision{{"}}"}}",
+          "title": "{{"{{"}}.app.metadata.name{{"}}"}}",
+          "title_link": "{{"{{"}}.context.argocdUrl{{"}}"}}/applications/{{"{{"}}.app.metadata.name{{"}}"}}",
+          "fields": [
+                {
+                    "title": "Sync Status",
+                    "value": "{{"{{"}}.app.status.sync.status{{"}}"}}",
+                    "short": true
+                },
+                {
+                    "title": "Env",
+                    "value": "{{"{{"}}.context.appenv{{"}}"}}",
+                    "short": true
+                }               
+            ],
           "footer": "ArgoCD",
           "footer_icon": "https://cncf-branding.netlify.app/img/projects/argo/icon/color/argo-icon-color.png"
         }]
   template.slack-template-bad: |
     message: |
-      State of Application {{"{{"}}app.metadata.name{{"}}"}} on {{"{{"}}context.appenv{{"}}"}} is = {{"{{"}}app.status.sync.status{{"}}"}}.
     slack:
       attachments: |
         [{
           "color": "#FF0000",
-          "title": "{{"{{"}}app.metadata.name{{"}}"}}",
-          "title_link": "{{"{{"}}context.argocdUrl{{"}}"}}/applications/{{"{{"}}app.metadata.name{{"}}"}}",
-          "text": "State - {{"{{"}}app.status.sync.status{{"}}"}}   Revision - {{"{{"}}app.status.sync.revision{{"}}"}}",
+          "title": "{{"{{"}}.app.metadata.name{{"}}"}}",
+          "title_link": "{{"{{"}}.context.argocdUrl{{"}}"}}/applications/{{"{{"}}.app.metadata.name{{"}}"}}",
+          "fields": [
+                {
+                    "title": "Sync Status",
+                    "value": "{{"{{"}}.app.status.sync.status{{"}}"}}",
+                    "short": true
+                },
+                {
+                    "title": "Env",
+                    "value": "{{"{{"}}.context.appenv{{"}}"}}",
+                    "short": true
+                }               
+            ],
           "footer": "ArgoCD",
           "footer_icon": "https://cncf-branding.netlify.app/img/projects/argo/icon/color/argo-icon-color.png"
         }]  
@@ -84,3 +105,4 @@ data:
       triggers:
       - on-sync-status-unknown
       - on-deployed
+      - on-sync-status-bad

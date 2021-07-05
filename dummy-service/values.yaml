@@ -1,0 +1,214 @@
+# Default values for dummy-service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of replicas
+replicaCount: 2
+
+# Namespace 
+nameSpace: demo
+
+# Labels to add 
+extraLabels:
+  app.kubernetes.io/env: demo
+  app.kubernetes.io/name: dummy-service
+  
+# Image details.  
+image:
+  urlPrefix: "ecr.aws.com/dummy-service"
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+imageTag: "dummy-service-1"
+
+# Abandend #
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+# #
+
+# Argocd Rollout strategy
+# It can be bluegreen/Canary/rolling update
+strategy:
+  type: canary
+  antiAffinity: {}
+  canarySteps:
+    steps:
+      - setCanaryScale:
+          weight: 100
+      - setWeight: 5
+      - pause: {}
+      - setWeight: 20
+      - setCanaryScale:
+          weight: 100      
+      - pause: {duration: 20s}
+      - setWeight: 40
+      - setCanaryScale:
+          weight: 100      
+      - pause: {duration: 20s}
+      - setWeight: 60
+      - setCanaryScale:
+          weight: 100      
+      - pause: {duration: 20s}
+      - setCanaryScale:
+          weight: 100      
+      - setWeight: 80
+      - pause: {duration: 20s}
+      - setCanaryScale:
+          weight: 100      
+      - setWeight: 100
+    
+serviceAccount:
+  enabled: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "dummy-service-sa"
+
+terminationGracePeriodSeconds: 60
+
+# Container level vars
+# Main container
+container:
+  portExposed: 8888 # Port exposed of container
+  volumesMounts: # mount points inside of container 
+    - name: log-dir
+      path: /usr/app/logs
+    - name: config-volume
+      path: /usr/app/application.yaml
+  volumes: # Type of volumes
+    - name: log-dir
+      emptyDir: '{}'
+      # hostPath:
+      #   path: /var/log/app
+    - name: config-volume
+      configMap:
+        name: pnp-adminpanel
+  envVars:   # Env vars to be passed on container
+    - name: NODE_ENV
+      value: demo
+  # Override docker args.      
+  args: []
+#  args:
+#    - "-jar $APP_FILE"      
+
+
+# Probes
+# liveness: Kubernetes uses liveness probes to know when to restart a container
+# readiness: Kubernetes uses readiness probes to decide when the container is available for accepting traffic.
+# startup: The kubelet uses startup probes to know when a container application has started. 
+#          If such a probe is configured, it disables liveness and readiness checks until it succeeds, 
+#          making sure those probes don't interfere with the application startup. This can be used to 
+#          adopt liveness checks on slow starting containers, avoiding them getting killed by the kubelet 
+#          before they are up and running.
+
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: liveness-port
+  failureThreshold: 30
+  periodSeconds: 10  
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: liveness-port
+  failureThreshold: 1
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: liveness-port
+  failureThreshold: 1
+  periodSeconds: 10     
+
+
+
+#podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+#   # capabilities:
+#   #   drop:
+#   #   - ALL
+#   # readOnlyRootFilesystem: true
+#   # runAsNonRoot: true
+#   # runAsUser: 1000
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8888
+  protocol: "TCP"
+  targetport: 8888
+  # type: NodePort
+  # port: 8888
+  # targetport: 8888  
+  # nodePort: 30001
+
+
+ingress:
+  enabled: false
+  annotations:
+    # kubernetes.io/ingress.class: alb
+    # #alb.ingress.kubernetes.io/load-balancer-name: ""
+    # alb.ingress.kubernetes.io/group.name: ""
+    # alb.ingress.kubernetes.io/group.order: '1'
+    # alb.ingress.kubernetes.io/tags:
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+    # #alb.ingress.kubernetes.io/security-groups
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    # #alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # #alb.ingress.kubernetes.io/certificate-arn: ''
+    # #alb.ingress.kubernetes.io/ssl-policy: 'ELBSecurityPolicy-FS-1-2-2019-08'
+    # alb.ingress.kubernetes.io/target-type: ip
+    # alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=90
+    # alb.ingress.kubernetes.io/healthcheck-path: /
+    # alb.ingress.kubernetes.io/healthcheck-interval-seconds: '7'
+    # alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    # alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    # alb.ingress.kubernetes.io/unhealthy-threshold-count: '5'
+  hostname: "bouncer.l.com"    
+
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local  
+
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    memory: 600Mi
+  requests:
+    memory: 600Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+#  lifecycle: spot
+
+tolerations: []
+
+# affinity: #{}
+#   podAntiAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#     - labelSelector:
+#         matchExpressions:
+#         - key: app.kubernetes.io/name
+#           operator: In
+#           values:
+#           - bouncer
+#       topologyKey: "kubernetes.io/hostname"

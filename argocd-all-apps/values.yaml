@@ -1,0 +1,103 @@
+
+extraLabels:
+  app.kubernetes.io/owner: devops
+
+nameSpace: argocd
+
+apps:
+  - name: argocd-rollouts
+    enabled: true
+    repo: https://github.com/suyog1pathak/eks-helms.git
+    branch: main
+    appNameSpace: argo-rollouts
+    sourcePath: eks/argocd-rollouts
+    autometedSync: true
+    helm: false
+
+  - name: argocd-notifications
+    enabled: true
+    repo: https://github.com/suyog1pathak/eks-helms.git
+    branch: main
+    appNameSpace: argocd
+    sourcePath: eks/argocd-notifications
+    autometedSync: false
+    helm:
+      enabled: true
+      helmParams:
+        parameters:
+          - name: slack.token
+            value: xoxb-17
+          - name: slack.appUserName
+            value: argocd-staging
+          - name: slack.channelName
+            value: argocd-temp
+          - name: slack.messageBody.appEnv
+            value: staging
+          - name: slack.messageBody.argocdUrl
+            value: http://argocd-staging.scoring.com 
+
+  - name: ebs-csi
+    enabled: true
+    repo: https://kubernetes-sigs.github.io/aws-ebs-csi-driver
+    branch: 1.2.2
+    appNameSpace: kube-system
+    autometedSync: false
+    helm:
+      enabled: true
+      chartName: aws-ebs-csi-driver  
+      helmParams:
+        parameters:
+          - name: serviceAccount.snapshot.create
+            value: "false"
+          - name: serviceAccount.controller.create
+            value: "false"
+
+  - name: external-dns
+    enabled: true
+    repo: https://github.com/suyog1pathak/eks-helms.git
+    branch: main
+    appNameSpace: kube-system
+    sourcePath: eks/external-dns
+    autometedSync: false
+    helm:
+      enabled: true  
+      helmParams:
+        parameters:
+          - name: externDns.domainName
+            value: scoring.com
+          - name: serviceAccount
+            value: external-dns-k8s
+
+  - name: storage-classes 
+    enabled: true
+    repo: https://github.com/suyog1pathak/eks-helms.git
+    branch: main
+    appNameSpace: kube-system
+    sourcePath: eks/sc-ebs
+    autometedSync: false
+    helm:
+      enabled: true  
+      helmParams:
+        parameters:
+          - name: storage.zones[0]
+            value: us-east-1a
+          - name: storage.zones[1]
+            value: us-east-1b
+          - name: storage.zones[2]
+            value: us-east-1c
+
+  - name: cluster-autoscaler
+    enabled: true
+    repo: https://github.com/suyog1pathak/eks-helms.git
+    branch: main
+    appNameSpace: kube-system
+    sourcePath: eks/cluster-autoscaler
+    autometedSync: true
+    helm:
+      enabled: true  
+      helmParams:
+        parameters:
+          - name: serviceAccountName
+            value: cluster-autoscaler
+          - name: eksClusterName
+            value: scoring-staging

@@ -1,0 +1,46 @@
+{{- $labels := include "helm.labels" . -}}
+{{- range .Values.apps }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.nameSpace }}
+  labels:
+    {{- with $.Values.extraLabels }}
+     {{ toYaml . | nindent 4}}
+    {{- end }}  
+    {{- $labels | nindent 4 }}
+spec:
+  destination:
+    namespace: {{ .appNameSpace }}
+    server: https://kubernetes.default.svc
+  project: default  
+  source:
+  {{- if .helm }}
+  {{- if .helm.chartName }}
+    chart: {{ .helm.chartName }}
+  {{- end }}
+    helm:
+      {{- with .helm.helmParams }}
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      valueFiles:
+      - values.yaml             
+  {{- end }}
+  {{- if .sourcePath }}
+    path: {{ .sourcePath }}
+  {{- end }}  
+    repoURL: {{ .repo }}
+    targetRevision: {{ .branch }}  
+  {{- if .autometedSync }}  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true 
+  {{- end }}
+---          
+
+{{- end }}

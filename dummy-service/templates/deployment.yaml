@@ -1,0 +1,142 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  namespace: {{ .Values.nameSpace }}
+  name: {{ include "helm.chartName" . }}
+  labels:
+    {{- with .Values.extraLabels }}
+     {{ toYaml . | nindent 4}}
+    {{- end }}  
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  revisionHistoryLimit: 2
+  strategy:
+  {{- if eq .Values.strategy.type "canary"}}
+    canary:
+      canaryService: {{ include "helm.chartName" . }}-canary
+      stableService: {{ include "helm.chartName" . }}-stable
+      trafficRouting:
+        alb:
+          ingress: {{ include "helm.chartName" . }}
+          servicePort: {{ .Values.service.port }}
+      {{- with .Values.strategy.canarySteps }}
+        {{- toYaml . | nindent 6 }}
+      {{- end }}      
+  {{- end }}       
+  selector:
+    matchLabels:
+      {{- include "helm.labels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "helm.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}  
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.urlPrefix }}:{{ .Values.imageTag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.container.volumesMounts }}
+          volumeMounts:
+          {{- range .Values.container.volumesMounts }}
+            {{- with . }}
+            - name: {{ .name }}
+              mountPath: {{ .path }}
+            {{- end }}
+          {{- end }} 
+          {{- end }}           
+          ports:
+          - containerPort: {{ .Values.container.portExposed }}
+          {{- if .Values.container.envVars }}
+          env:
+          - name: DD_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP          
+          {{- range .Values.container.envVars }}
+            {{- with . }}
+          - name: {{ .name }}
+            value: {{ .value }}
+            {{- end }}   
+          {{- end }}
+          {{- end }}
+          {{- if .Values.container.args }}
+          args:
+            {{- range .Values.container.args }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}     
+
+          {{- if .Values.livenessProbe }}
+          livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+
+          {{- if .Values.readinessProbe }}
+          readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}                    
+
+          {{- if .Values.startupProbe }}
+          startupProbe:
+          {{- toYaml .Values.startupProbe | nindent 12 }}
+          {{- end }}
+
+          {{- if .Values.resources }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}  
+
+      {{- if .Values.container.volumes }}      
+
+      volumes:
+      {{- range .Values.container.volumes }}
+        {{- with . }}
+        - name: {{ .name }}
+
+          {{ if .emptyDir }}
+          emptyDir: {}
+          {{- end }}            
+          {{ if .hostPath }}
+          hostPath:
+            path: {{ .hostPath.path }}
+          {{- end }}
+          {{ if .configMap }}
+          configMap:
+            name: {{ .configMap.name }}
+          {{- end }}
+        
+        {{- end }}
+      {{- end }}
+
+      {{- end }}
+
+
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+         
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
